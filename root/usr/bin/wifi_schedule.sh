@@ -180,7 +180,8 @@ soft_disable_wifi()
         disable_wifi
     else
         _log "Could not disable wifi due to associated stations, retrying..."
-        _add_cron_script "*/1 * * * * ${SCRIPT} recheck"
+        local recheck_interval=$(_get_uci_value ${PACKAGE}.@global[0].recheck_interval)
+        _add_cron_script "*/${recheck_interval} * * * * ${SCRIPT} recheck"
     fi
 }
 
@@ -208,7 +209,7 @@ usage()
 # MAIN
 ###############################################################################
 LOGGING=$(_get_uci_value ${PACKAGE}.@global[0].logging)
-_log ${SCRIPT} $1 called
+_log ${SCRIPT} $1 $2
 lock ${LOCKFILE}
 
 case "$1" in

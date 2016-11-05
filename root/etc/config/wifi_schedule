@@ -1,12 +1,13 @@
 config global
         option logging '0'
         option enabled '0'
+        option recheck_interval '10'
 
 config entry 'Businesshours'
         option enabled '0'
         option daysofweek 'Monday Tuesday Wednesday Thursday Friday'
-        option stoptime '06:00'
         option starttime '06:00'
+        option stoptime '22:00'
         option forcewifidown '0'
 
 config entry 'Weekend'

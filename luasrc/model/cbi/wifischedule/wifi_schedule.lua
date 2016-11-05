@@ -78,6 +78,27 @@ global_logging.rmempty = false;
 global_logging.default = 0
 -- END Global Enable Checkbox
 
+-- BEGIN Activate WiFi Button
+enable_wifi = global_section:option(Button, "enable_wifi", translate("Activate wifi"))
+function enable_wifi.write()
+    luci.sys.exec("/usr/bin/wifi_schedule.sh start manual")
+end
+-- END Activate Wifi Button
+
+-- BEGIN Disable WiFi Gracefully Button
+disable_wifi_gracefully = global_section:option(Button, "disable_wifi_gracefully", translate("Disable wifi gracefully"))
+function disable_wifi_gracefully.write()
+    luci.sys.exec("/usr/bin/wifi_schedule.sh stop manual")
+end
+-- END Disable Wifi Gracefully Button 
+
+-- BEGIN Disable WiFi Forced Button
+disable_wifi_forced = global_section:option(Button, "disable_wifi_forced", translate("Disabled wifi forced"))
+function disable_wifi_forced.write()
+    luci.sys.exec("/usr/bin/wifi_schedule.sh forcestop manual")
+end
+-- END Disable WiFi Forced Button
+
 -- BEGIN Section
 d = m:section(TypedSection, "entry", "Schedule events")
 d.addremove = true  
