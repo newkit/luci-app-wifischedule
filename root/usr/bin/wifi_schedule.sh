@@ -155,23 +155,24 @@ disable_wifi()
 soft_disable_wifi()
 {
     local _disable_wifi=1
-
-
-    iw=/usr/sbin/iw
-    if [ ! -e ${iw} ]; then
-        echo "iw not available, skipping"
+    local iwinfo=/usr/bin/iwinfo
+    if [ ! -e ${iwinfo} ]; then
+        echo "${iwinfo} not available, skipping"
         _exit 1
     fi
 
-    interfaces=$(${iw} dev | awk '$1=="Interface"{print $2}')
+    local n=$(cat /proc/net/wireless | wc -l)
+    interfaces=$(cat /proc/net/wireless | tail -n $(($n - 2))|awk -F':' '{print $1}')
 
     # check if no stations are associated
     for _if in $interfaces
     do
-        output=$(${iw} dev ${_if} station dump)
-        if [ ! -z "$output" ]
+        output=$(${iwinfo} ${_if} assoclist)
+        if [[ "$output" != "No station connected" ]]
         then
             _disable_wifi=0
+            local stations=$(echo ${output}| grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' | tr '\n' ' ')
+            _log "Station(s) ${stations} associated on ${_if}"
         fi
     done
 

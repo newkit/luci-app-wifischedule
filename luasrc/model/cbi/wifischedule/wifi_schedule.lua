@@ -202,10 +202,10 @@ force_wifi.rmempty = false;
 
 function force_wifi.validate(self, value, d)
     if value == "0" then
-        if file_exists("/usr/sbin/iw") then
+        if file_exists("/usr/bin/iwinfo") then
             return value
         else
-            return nil, translate("Could not find required programm /usr/sbin/iw")
+            return nil, translate("Could not find required programm /usr/bin/iwinfo")
         end
     else
         return "1"
