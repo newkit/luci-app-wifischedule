@@ -39,14 +39,14 @@ end
 -- -------------------------------------------------------------------------------------------------
 
 -- BEGIN Map
-m = Map("wifi_schedule", translate("Wifi Schedule"), translate("Defines a schedule when to turn on and off wifi.")) 
+m = Map("wifi_schedule", translate("Wifi Schedule"), translate("Defines a schedule when to turn on and off wifi.<br>dag")) 
 function m.on_commit(self)
     luci.sys.exec("/usr/bin/wifi_schedule.sh cron")
 end
 -- END Map
 
 -- BEGIN Global Section
-global_section = m:section(TypedSection, "global", "Global")
+global_section = m:section(TypedSection, "global", "Global Settings")
 global_section.optional = false
 global_section.rmempty = false
 global_section.anonymous = true
@@ -71,33 +71,74 @@ end
 -- END Global Enable Checkbox
 
 
--- BEGIN Logging Checkbox
+-- BEGIN Global Logging Checkbox
 global_logging = global_section:option(Flag, "logging", translate("Enable logging"))
 global_logging.optional=false; 
 global_logging.rmempty = false;
 global_logging.default = 0
 -- END Global Enable Checkbox
 
--- BEGIN Activate WiFi Button
+-- BEGIN Global Activate WiFi Button
 enable_wifi = global_section:option(Button, "enable_wifi", translate("Activate wifi"))
 function enable_wifi.write()
     luci.sys.exec("/usr/bin/wifi_schedule.sh start manual")
 end
--- END Activate Wifi Button
+-- END Global Activate Wifi Button
 
--- BEGIN Disable WiFi Gracefully Button
+-- BEGIN Global Disable WiFi Gracefully Button
 disable_wifi_gracefully = global_section:option(Button, "disable_wifi_gracefully", translate("Disable wifi gracefully"))
 function disable_wifi_gracefully.write()
     luci.sys.exec("/usr/bin/wifi_schedule.sh stop manual")
 end
--- END Disable Wifi Gracefully Button 
+-- END Global Disable Wifi Gracefully Button 
 
 -- BEGIN Disable WiFi Forced Button
 disable_wifi_forced = global_section:option(Button, "disable_wifi_forced", translate("Disabled wifi forced"))
 function disable_wifi_forced.write()
     luci.sys.exec("/usr/bin/wifi_schedule.sh forcestop manual")
 end
--- END Disable WiFi Forced Button
+-- END Global Disable WiFi Forced Button
+
+-- BEGIN Global Unload Modules Checkbox
+global_unload_modules = global_section:option(Flag, "unload_modules", translate("Unload Modules (experimental; saves more power)"))
+global_unload_modules.optional = false;
+global_unload_modules.rmempty = false;
+global_unload_modules.default = 0
+-- END Global Unload Modules Checkbox
+
+
+-- BEGIN Modules
+modules = global_section:option(TextValue, "modules", "")
+modules:depends("unload_modules", global_unload_modules.enabled);
+modules.wrap    = "off"
+modules.rows    = 10
+
+function modules.cfgvalue(self, section)
+    mod=uci.get("wifi_schedule", section, "modules")
+    if mod == nil then
+        mod=""
+    end
+    return mod:gsub(" ", "\r\n")
+end
+
+function modules.write(self, section, value)
+    if value then
+        value_list = value:gsub("\r\n", " ")
+        ListValue.write(self, section, value_list)
+        uci.set("wifi_schedule", section, "modules", value_list)
+    end
+end
+-- END Modules
+
+-- BEGIN Determine Modules 
+determine_modules = global_section:option(Button, "determine_modules", translate("Determine Modules Automatically"))
+determine_modules:depends("unload_modules", global_unload_modules.enabled);
+function determine_modules.write(self, section)
+    output = luci.sys.exec("/usr/bin/wifi_schedule.sh getmodules")
+    modules:write(section, output)
+end
+-- END Determine Modules
+
 
 -- BEGIN Section
 d = m:section(TypedSection, "entry", "Schedule events")

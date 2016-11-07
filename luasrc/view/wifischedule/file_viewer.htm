@@ -17,6 +17,6 @@ Author: Nils Koenig <mail_openwrt@newk.it>
 <%+header%>
 <h2 name="title"><%=title%></h2>
 <div id="content_fileviewer">
-<textarea style="width: 600px" readonly="readonly" wrap="off" rows="<%=content:cmatch("\n")+1%>" cols="80" id="content1"><%=content:pcdata()%></textarea>
+<textarea style="width: 100%" readonly="readonly" wrap="off" rows="<%=content:cmatch("\n")+1%>" id="content_id"><%=content:pcdata()%></textarea>
 </div>
 <%+footer%>

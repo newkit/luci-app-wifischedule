@@ -19,6 +19,7 @@ LOCKFILE=/tmp/wifi_schedule.lock
 LOGFILE=/tmp/log/wifi_schedule.log
 LOGGING=0 #default is off
 PACKAGE=wifi_schedule
+GLOBAL=${PACKAGE}.@global[0]
 
 _log()
 {
@@ -26,6 +27,13 @@ _log()
         local ts=$(date)
         echo "$ts $@" >> ${LOGFILE}
     fi
+}
+
+_exit()
+{
+    local rc=$1
+    lock -u ${LOCKFILE}
+    exit ${rc}
 }
 
 _cron_restart()
@@ -61,7 +69,7 @@ _get_uci_value()
     local rc=$?
     if [ ${rc} -ne 0 ]; then
         _log "Could not determine UCI value $1"
-        _exit ${rc}
+        return 1
     fi
     echo ${value}
 }
@@ -70,6 +78,7 @@ _format_dow_list()
 {
     local dow=$1
     local flist=""
+    local day
     for day in ${dow}
     do
         if [ ! -z ${flist} ]; then
@@ -84,19 +93,17 @@ _format_dow_list()
 _enable_wifi_schedule()
 {
     local entry=$1
-    local starttime=$(_get_uci_value ${PACKAGE}.${entry}.starttime)
-    local stoptime=$(_get_uci_value ${PACKAGE}.${entry}.stoptime)
+    local starttime
+    local stoptime
+    starttime=$(_get_uci_value ${PACKAGE}.${entry}.starttime) || _exit 1
+    stoptime=$(_get_uci_value ${PACKAGE}.${entry}.stoptime) || _exit 1
 
     local dow
-    dow=$(_get_uci_value_raw ${PACKAGE}.${entry}.daysofweek)
-    if [ $? -ne 0 ]; then
-        return 1
-    fi
+    dow=$(_get_uci_value_raw ${PACKAGE}.${entry}.daysofweek) || _exit 1 
     
     local fdow=$(_format_dow_list "$dow")
-
-    local forcewifidown=$(_get_uci_value ${PACKAGE}.${entry}.forcewifidown)
-
+    local forcewifidown
+    forcewifidown=$(_get_uci_value ${PACKAGE}.${entry}.forcewifidown)
     local stopmode="stop"
     if [ $forcewifidown -eq 1 ]; then
         stopmode="forcestop"
@@ -110,26 +117,100 @@ _enable_wifi_schedule()
     then                                                         
         local start_cron_entry="$(echo ${starttime} | awk -F':' '{print $2, $1}') * * ${fdow} ${SCRIPT} start" # ${entry}"
         _add_cron_script "${start_cron_entry}"
-#    else
-#        _log "Wifi start time equals wifi stop time, this will deactivate wifi."
     fi
 
     return 0
 }
 
-_exit()
+_get_wireless_interfaces()
 {
-    local rc=$1
-    lock -u ${LOCKFILE}
-    exit ${rc}
+    local n=$(cat /proc/net/wireless | wc -l)
+    cat /proc/net/wireless | tail -n $(($n - 2))|awk -F':' '{print $1}'| sed  's/ //' 
+}
+
+
+get_module_list()
+{
+    local mod_list
+    local _if
+    for _if in $(_get_wireless_interfaces)
+    do
+        local mod=$(basename $(readlink -f /sys/class/net/${_if}/device/driver))
+        local mod_dep=$(modinfo ${mod} | awk '{if ($1 ~ /depends/) print $2}')
+        mod_list=$(echo -e "${mod_list}\n${mod},${mod_dep}" | sort | uniq)
+    done
+    echo $mod_list | tr ',' ' '
+}
+
+_save_module_list_uci()
+{
+    local list=$(get_module_list)
+    uci set ${GLOBAL}.modules="${list}"
+    uci commit ${PACKAGE}
+}
+
+_unload_modules()
+{
+    local list=$(_get_uci_value ${GLOBAL}.modules) 
+    local retries
+    retries=$(_get_uci_value ${GLOBAL}.modules_retries) || _exit 1
+    _log "unload_modules ${list} (retries: ${retries})"
+    local i=0
+    while [[ ${i} -lt ${retries}  &&  "${list}" != "" ]]
+    do  
+        i=$(($i+1))
+        local mod
+        local first=0
+        for mod in ${list}
+        do
+            if [ $first -eq 0 ]; then
+                list=""
+                first=1
+            fi
+            rmmod ${mod} > /dev/null 2>&1
+            if [ $? -ne 0 ]; then
+                list="$list $mod"
+            fi
+        done
+    done
+}
+
+
+_load_modules()
+{
+    local list=$(_get_uci_value ${GLOBAL}.modules)
+    local retries
+    retries=$(_get_uci_value ${GLOBAL}.modules_retries) || _exit 1
+    _log "load_modules ${list} (retries: ${retries})"
+    local i=0
+    while [[ ${i} -lt ${retries}  &&  "${list}" != "" ]]
+    do  
+        i=$(($i+1))
+        local mod
+        local first=0
+        for mod in ${list}
+        do
+            if [ $first -eq 0 ]; then
+                list=""
+                first=1
+            fi
+            modprobe ${mod} > /dev/null 2>&1
+            rc=$? 
+            if [ $rc -ne 255 ]; then
+                list="$list $mod"
+            fi
+        done
+    done
 }
 
 _create_cron_entries()
 {
     local entries=$(uci show ${PACKAGE} 2> /dev/null | awk -F'.' '{print $2}' | grep -v '=' | grep -v '@global\[0\]' | uniq | sort)
+    local _entry
     for entry in ${entries}
     do 
-        local status=$(_get_uci_value ${PACKAGE}.${entry}.enabled)
+        local status
+        status=$(_get_uci_value ${PACKAGE}.${entry}.enabled) || _exit 1
         if [ ${status} -eq 1 ]
         then
             _enable_wifi_schedule ${entry}
@@ -139,7 +220,8 @@ _create_cron_entries()
 
 check_cron_status()
 {
-    local global_enabled=$(_get_uci_value ${PACKAGE}.@global[0].enabled)
+    local global_enabled
+    global_enabled=$(_get_uci_value ${GLOBAL}.enabled) || _exit 1
     _rm_cron_script "${SCRIPT}"
     if [ ${global_enabled} -eq 1 ]; then
         _create_cron_entries
@@ -150,6 +232,11 @@ disable_wifi()
 {
     _rm_cron_script "${SCRIPT} recheck"
     /sbin/wifi down
+    local unload_modules
+    unload_modules=$(_get_uci_value_raw ${GLOBAL}.unload_modules) || _exit 1
+    if [[ "${unload_modules}" == "1" ]]; then
+        _unload_modules
+    fi    
 }
 
 soft_disable_wifi()
@@ -157,22 +244,20 @@ soft_disable_wifi()
     local _disable_wifi=1
     local iwinfo=/usr/bin/iwinfo
     if [ ! -e ${iwinfo} ]; then
-        echo "${iwinfo} not available, skipping"
-        _exit 1
+        _log "${iwinfo} not available, skipping"
+        return 1
     fi
 
-    local n=$(cat /proc/net/wireless | wc -l)
-    interfaces=$(cat /proc/net/wireless | tail -n $(($n - 2))|awk -F':' '{print $1}')
-
     # check if no stations are associated
-    for _if in $interfaces
+    local _if
+    for _if in $(_get_wireless_interfaces)
     do
         output=$(${iwinfo} ${_if} assoclist)
         if [[ "$output" != "No station connected" ]]
         then
             _disable_wifi=0
             local stations=$(echo ${output}| grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' | tr '\n' ' ')
-            _log "Station(s) ${stations} associated on ${_if}"
+            _log "Station(s) ${stations}associated on ${_if}"
         fi
     done
 
@@ -181,7 +266,7 @@ soft_disable_wifi()
         disable_wifi
     else
         _log "Could not disable wifi due to associated stations, retrying..."
-        local recheck_interval=$(_get_uci_value ${PACKAGE}.@global[0].recheck_interval)
+        local recheck_interval=$(_get_uci_value ${GLOBAL}.recheck_interval)
         _add_cron_script "*/${recheck_interval} * * * * ${SCRIPT} recheck"
     fi
 }
@@ -189,19 +274,25 @@ soft_disable_wifi()
 enable_wifi()
 {
     _rm_cron_script "${SCRIPT} recheck"
+    local unload_modules
+    unload_modules=$(_get_uci_value_raw ${GLOBAL}.unload_modules) || _exit 1
+    if [[ "${unload_modules}" == "1" ]]; then
+        _load_modules
+    fi
     /sbin/wifi
 }
 
 usage()
 {
     echo ""
-    echo "$0 cron|start|stop|forcestop|recheck|help"
+    echo "$0 cron|start|stop|forcestop|recheck|getmodules|help"
     echo ""
     echo "    cron: Create cronjob entries."
     echo "    start: Start wifi."
     echo "    stop: Stop wifi gracefully, i.e. check if there are stations associated and if so keep retrying."
     echo "    forcestop: Stop wifi immediately."
     echo "    recheck: Recheck if wifi can be disabled now."
+    echo "    getmodules: Returns a list of modules used by the wireless driver(s)"
     echo "    help: This description."
     echo ""
 }
@@ -209,7 +300,7 @@ usage()
 ###############################################################################
 # MAIN
 ###############################################################################
-LOGGING=$(_get_uci_value ${PACKAGE}.@global[0].logging)
+LOGGING=$(_get_uci_value ${GLOBAL}.logging) || _exit 1
 _log ${SCRIPT} $1 $2
 lock ${LOCKFILE}
 
@@ -219,6 +310,7 @@ case "$1" in
     forcestop) disable_wifi ;;
     stop) soft_disable_wifi ;;
     recheck) soft_disable_wifi ;;
+    getmodules) get_module_list ;;
     help|--help|-h) usage ;;
 esac
 
