@@ -13,7 +13,6 @@ Regarding 1: Please note, that you need to unload the wireless driver modules in
 In my test scenario only disabling WiFi saves about ~0.4 Watt, unloading the modules removes another ~0.4 Watt.
 
 Regarding 2: Think of a wireless accesspoint e.g. in your bedrom, kids room where you want to remove the ammount of radiation emitted.
-I've heard stories where the option of disabling the WiFi during night increased the [WA-Factor](https://en.wikipedia.org/wiki/Wife_acceptance_factor) significantly.
 
 Regarding 3: E.g. in a company, why would wireless need to be enabled weekends if no one is there working? 
 Or think of an accesspoint in your kids room when you want the youngsters to sleep after 10 pm instead of facebooking...
