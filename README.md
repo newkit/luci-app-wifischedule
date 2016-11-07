@@ -5,9 +5,9 @@ Turns WiFi on and off according to a schedule on an openwrt router
 You can create user-defined events when to enable or disable WiFi. 
 There are various use cases why you would like to do so:
 
-*Reduce power consumption and therefore reduce CO2 emissions.
-*Reduce emitted electromagnatic radiation.
-1.Force busincess hours when WiFi is available.
+1. Reduce power consumption and therefore reduce CO2 emissions.
+2. Reduce emitted electromagnatic radiation.
+3. Force busincess hours when WiFi is available.
 
 Regarding 1: Please note, that you need to unload the wireless driver modules in order to get the most effect of saving power.
 In my test scenario only disabling WiFi saves about ~0.4 Watt, unloading the modules removes another ~0.4 Watt.
