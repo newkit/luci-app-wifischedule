@@ -4,9 +4,10 @@ Turns WiFi on and off according to a schedule on an openwrt router
 ## Use cases
 You can create user-defined events when to enable or disable WiFi. 
 There are various use cases why you would like to do so:
-1. Reduce power consumption and therefore reduce CO2 emissions.
-2. Reduce emitted electromagnatic radiation.
-3. Force busincess hours when WiFi is available.
+
+*Reduce power consumption and therefore reduce CO2 emissions.
+*Reduce emitted electromagnatic radiation.
+1.Force busincess hours when WiFi is available.
 
 Regarding 1: Please note, that you need to unload the wireless driver modules in order to get the most effect of saving power.
 In my test scenario only disabling WiFi saves about ~0.4 Watt, unloading the modules removes another ~0.4 Watt.
@@ -31,4 +32,4 @@ When un-/loading the modules, there is a certain number of retries (`module_load
 The option "Force disabling wifi even if stations associated" does what it says - when activated it simply shuts down WiFi.
 When unchecked, its checked every `recheck_interval` minutes if there are still stations associated. Once the stations disconnect, WiFi is disabled.
 
-Please note, that the parameters <em>module_load</em> and <em>recheck_interval</em> are only accessible through uci.
+Please note, that the parameters `module_load` and `recheck_interval` are only accessible through uci.
