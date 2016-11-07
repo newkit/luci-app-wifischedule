@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Luci-app-wifischedule : Turns WiFi on and off according to a schedule on an openwrt router">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Luci-app-wifischedule</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/newkit/luci-app-wifischedule">View on GitHub</a>
+
+          <h1 id="project_title">Luci-app-wifischedule</h1>
+          <h2 id="project_tagline">Turns WiFi on and off according to a schedule on an openwrt router</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/newkit/luci-app-wifischedule/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/newkit/luci-app-wifischedule/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a id="luci-app-wifischedule" class="anchor" href="#luci-app-wifischedule" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>luci-app-wifischedule</h1>
+
+<p>Turns WiFi on and off according to a schedule on an openwrt router</p>
+
+<h2>
+<a id="use-cases" class="anchor" href="#use-cases" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Use cases</h2>
+
+<p>You can create user-defined events when to enable or disable WiFi. 
+There are various use cases why you would like to do so:</p>
+
+<ol>
+<li>Reduce power consumption and therefore reduce CO2 emissions.</li>
+<li>Reduce emitted electromagnatic radiation.</li>
+<li>Force busincess hours when WiFi is available.</li>
+</ol>
+
+<p>Regarding 1: Please note, that you need to unload the wireless driver modules in order to get the most effect of saving power.
+In my test scenario only disabling WiFi saves about ~0.4 Watt, unloading the modules removes another ~0.4 Watt.</p>
+
+<p>Regarding 2: Think of a wireless accesspoint e.g. in your bedrom, kids room where you want to remove the ammount of radiation emitted.
+I've heard stories where the option of disabling the WiFi during night increased the <a href="https://en.wikipedia.org/wiki/Wife_acceptance_factor">WA-Factor</a> significantly.</p>
+
+<p>Regarding 3: E.g. in a company, why would wireless need to be enabled weekends if no one is there working? 
+Or think of an accesspoint in your kids room when you want the youngsters to sleep after 10 pm instead of facebooking...</p>
+
+<h2>
+<a id="configuration" class="anchor" href="#configuration" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Configuration</h2>
+
+<p>You can create an arbitrary number of schedule events. Please note that there is on sanity check done wheather the start / stop times overlap or make sense.
+If start and stop time are equal, this leads to disabling the WiFi at the given time.</p>
+
+<p>Logging if enabled is done to the file /var/log/wifi_schedule.log and can be reviewed through the "View Logfile" tab.
+The cron jobs created can be reviewed through the "View Cron Jobs" tab.</p>
+
+<p>Please note that the "Unload Modules" function is currently considered as experimental. You can manually add / remove modules in the text field.
+The button "Determine Modules Automatically" tries to make a best guess determining regarding the driver module and its dependencies.
+When un-/loading the modules, there is a certain number of retries (<code>module_load</code>) performed.</p>
+
+<p>The option "Force disabling wifi even if stations associated" does what it says - when activated it simply shuts down WiFi.
+When unchecked, its checked every <code>recheck_interval</code> minutes if there are still stations associated. Once the stations disconnect, WiFi is disabled.</p>
+
+<p>Please note, that the parameters <code>module_load</code> and <code>recheck_interval</code> are only accessible through uci.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Luci-app-wifischedule maintained by <a href="https://github.com/newkit">newkit</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
