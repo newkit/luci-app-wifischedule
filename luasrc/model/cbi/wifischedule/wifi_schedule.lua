@@ -10,7 +10,7 @@
 -- LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
 -- ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 --
--- Author: Nils Koenig <mail_openwrt@newk.it>
+-- Author: Nils Koenig <mailUNDERSCOREopenwrt@newkDOTit>
 
 function file_exists(name)
    local f=io.open(name,"r")
