@@ -1,5 +1,10 @@
-# luci-app-wifischedule
+# wifischedule
 Turns WiFi on and off according to a schedule on an openwrt router
+
+## Components
+* wifischedule: Shell script that creates cron jobs based on configuration provided in UCI and does all the other logic of enabling and disabling wifi with the use of `/sbin/wifi` and `/usr/bin/iwinfo`. Can be used standalone.
+* luci-app-wifischedule: LUCI frontend for creating the UCI configuration and triggering the actions. Depends on wifischedule.
+
 
 ## Use cases
 You can create user-defined events when to enable or disable WiFi. 
@@ -21,7 +26,7 @@ Or think of an accesspoint in your kids room when you want the youngsters to sle
 You can create an arbitrary number of schedule events. Please note that there is on sanity check done wheather the start / stop times overlap or make sense.
 If start and stop time are equal, this leads to disabling the WiFi at the given time.
 
-Logging if enabled is done to the file /var/log/wifi_schedule.log and can be reviewed through the "View Logfile" tab.
+Logging if enabled is done to the file `/var/log/wifi_schedule.log` and can be reviewed through the "View Logfile" tab.
 The cron jobs created can be reviewed through the "View Cron Jobs" tab.
 
 Please note that the "Unload Modules" function is currently considered as experimental. You can manually add / remove modules in the text field.
@@ -34,7 +39,10 @@ When unchecked, its checked every `recheck_interval` minutes if there are still 
 Please note, that the parameters `module_load` and `recheck_interval` are only accessible through uci.
 
 ## UCI Configuration `wifi_schedule`
-`config global
+UCI configuration file: `/etc/config/wifi_schedule`:
+
+```
+config global
         option logging '0'
         option enabled '0'
         option recheck_interval '10'
@@ -53,18 +61,19 @@ config entry 'Weekend'
         option starttime '00:00'
         option stoptime '00:00'
         option forcewifidown '1'
-`
+```
 
 ## Script: `wifi_schedule.sh`
-This is the script that does the work. Make your changes to the UCI config file.
+This is the script that does the work. Make your changes to the UCI config file: `/etc/config/wifi_schedule`
+
 Then call the script as follows in order to get the necessary cron jobs created:
 
 `wifi_schedule.sh cron`
 
+All commands:
  
-`wifi_schedule.sh cron|start|stop|forcestop|recheck|getmodules|savemodules|help
-
-    UCI Config File: /etc/config/wifi_schedule.sh
+```
+wifi_schedule.sh cron|start|stop|forcestop|recheck|getmodules|savemodules|help
 
     cron: Create cronjob entries.
     start: Start wifi.
@@ -73,6 +82,5 @@ Then call the script as follows in order to get the necessary cron jobs created:
     recheck: Recheck if wifi can be disabled now.
     getmodules: Returns a list of modules used by the wireless driver(s)
     savemodules: Saves a list of automatic determined modules to UCI
-    help: This description.`
-
-
+    help: This description.
+```
